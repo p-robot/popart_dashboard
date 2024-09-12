@@ -2,22 +2,6 @@
 App to plot output data from the PoPART-IBM model
 
 Author: p-robot
-
-
-TO DO
-- put on github
-- [x] plot additional variables
-- [x] expand/collapse figures
-- [x] use tabs (for figure or data)
-- [x] add some top-line metrics to the outputs (country, community)
-- add observed data
-- deploy online
-- run model online and populate this in real-time
-- workflow for running with multiple output files (parquet files?)
-- default plotting routines for all file types and all columns
-- add PC time periods (How?)
-- add routines for showing calibration output
-- fix commas in the thousands spot (Stackoverflow?)
 """
 
 import streamlit as st
@@ -43,7 +27,7 @@ plotting_dict = {
               'col': ["#D55E00", "#0072B2"]},
 }
 
-output_dir="/Users/willprobert/Projects/POPART-IBM_p-robot/examples/PARAMS_COMMUNITY5/Output"
+output_dir="data/examples"
 
 # List all files in the output directory
 all_files = sorted(os.listdir(output_dir))
