@@ -13,19 +13,25 @@ import altair as alt
 
 plotting_dict = {
     'Incidence': {'name': 'HIV incidence',
-                  'var': ['Incidence'],
+                  'var': 'Incidence',
                   'col': '#D55E00'},
+
     'NewCasesThisYear': {'name': 'New HIV infections',
-                         'var': ['NewCasesThisYear'],
+                         'var': 'NewCasesThisYear',
                          'col': '#D55E00'},
+
     'Prevalence': {'name': 'HIV prevalence',
-                   'var': ['Prevalence'],
+                   'var': 'Prevalence',
                    'col': '#D55E00'},
+
     'PLHIV': {'name': 'Number of people living with HIV', 
               'var': ['NumberPositiveM', 'NumberPositiveF', 'NumberPositive'],
+              'codes': ['Men', 'Women', 'Total'],
               'col': ["#D55E00", "#0072B2", "#009E73"]},
+
     'HIVDeaths': {'name': 'HIV-related deaths', 
               'var': ['NDied_from_HIV', 'NHIV_pos_dead'],
+              'codes': ['Deaths from HIV-related causes', 'Deaths of PLHIV'],
               'col': ["#D55E00", "#0072B2"]},
 }
 
@@ -40,6 +46,8 @@ st.markdown("""PopART-IBM is an individual-based model for simulating HIV epidem
             in high-prevalence settings, as used in the 
             [HPTN 071 (PopART) trial](https://www.hptn.org/research/studies/hptn-071).
             POPART-IBM source code is available [here](https://github.com/p-robot/POPART-IBM)""")
+
+st.markdown("""All data within this dashboard is synthetic and does not represent real-world individuals.""")
 
 st.divider()
 
@@ -80,15 +88,6 @@ df_plot = df[(df.Year>=year_range[0]) & (df.Year<=year_range[1])]
 if outside_patch_on:
     df_outside = df_outside[(df_outside.Year>=year_range[0]) & (df_outside.Year<=year_range[1])]
 
-
-st.header("HIV incidence")
-chart = (alt.Chart(df_plot).mark_line(color="#D55E00").encode(
-    x=alt.X('Year', axis=alt.Axis(format='.0f')),
-    y='Incidence'
-))
-st.altair_chart(chart, use_container_width=True)
-
-
 st.subheader("HIV indicators in 2030 (trial community)")
 c4, c5, c6 = st.columns(3)
 inc_inside = round(df_plot.Incidence.max()*100, 2)
@@ -109,26 +108,80 @@ if outside_patch_on:
     c5.metric("PLHIV", plhiv_outside, delta = int(plhiv_outside - plhiv_inside))
     c6.metric("Pop. size", pop_outside, delta = int(pop_outside - pop_inside))
 
+
+def add_single_line_chart(data: pd.DataFrame, x: str, y: str, line_color: str) -> alt.Chart:
+    """
+    Create a line chart with one variable
+    """
+    output_chart = (alt.Chart(data).mark_line(color=line_color).encode(
+                x=alt.X(x, axis=alt.Axis(format='.0f')),
+                y = y)
+                ).configure_legend(orient='bottom')
+    return(output_chart)
+
+
+def add_multiple_line_chart(data: pd.DataFrame, x: str, y: list, 
+                            value_name: str, var_name: str, line_color: list,
+                            codes: list) -> alt.Chart:
+    """
+    Create a line chart with multiple variables
+    """
+    # Reshape
+    df_melt = data[[x]+y].melt(
+        x,
+        value_name = value_name,
+        var_name = var_name)
+    
+    # Recode if needed
+    df_melt[var_name].replace(dict(zip(y, codes)), inplace=True)
+
+    col_var = alt.Color(var_name,
+        scale=alt.Scale(
+        domain=codes,
+        range=line_color))
+    
+    chart = (alt.Chart(df_melt).mark_line().encode(
+        x=alt.X(x, axis=alt.Axis(format='.0f')),
+        y = value_name,
+        color = col_var)
+        ).configure_legend(orient='bottom')
+    return(chart)
+
+
 # Plot HIV indicators and show data in secondary tab
 st.header("HIV indicators")
 for var in vars_to_plot:
+    # Create an expander
     with st.expander(plotting_dict[var]['name'], expanded = True):
-        tab1, tab2 = st.tabs(["Figure", "Data"])
-        tab1.header(plotting_dict[var]['name'])
-        tab1.line_chart(data = df_plot,
-            x = 'Year',
-            y = plotting_dict[var]['var'],
-            color = plotting_dict[var]['col'])
-        with tab2:
-            st.header(plotting_dict[var]['name'])
-            st.dataframe(df_plot[['Year']+ plotting_dict[var]['var']], 
-                         hide_index=True)
+        # Create two tabs
+        #tab1, tab2 = st.tabs(["Figure", "Data"])
+        st.header(plotting_dict[var]['name'])
+        # Populate figure tab
+        if isinstance(plotting_dict[var]['var'], list):
+            chart = add_multiple_line_chart(df_plot,
+                                            x = 'Year', 
+                                            y = plotting_dict[var]['var'],
+                                            value_name = 'Value',
+                                            var_name = plotting_dict[var]['name'],
+                                            line_color = plotting_dict[var]['col'],
+                                            codes = plotting_dict[var]['codes'])
+        else:
+            chart = add_single_line_chart(data = df_plot, 
+                                          x = 'Year', 
+                                          y = plotting_dict[var]['var'], 
+                                          line_color = plotting_dict[var]['col'])
+        st.altair_chart(chart, use_container_width=True)
+        # Populate table tab
+        # with tab2:
+        #     st.header(plotting_dict[var]['name'])
+        #     st.dataframe(df_plot[['Year']+ plotting_dict[var]['var']], hide_index=True)
 
 st.header("Community demographics")
 
 # Reshape the data
 df_pop = df_plot[['Year', 'TotalPopulation', 'PopulationF', 'PopulationM']].melt(
     'Year', value_name = "Population size", var_name = "Population")
+
 # Recode the data
 df_pop.Population.replace(
         {'TotalPopulation': 'Total', 
@@ -137,21 +190,20 @@ df_pop.Population.replace(
 
 with st.expander("Total population size"):
     st.header("Total population size")
-    chart = (alt.Chart(df_pop).mark_line().encode(
-        x=alt.X('Year', axis=alt.Axis(format='.0f')),
-        y = 'Population size', 
-        color = alt.Color('Population',
-            scale=alt.Scale(
-            domain=['Total', 'Male', 'Female'],
-            range=["#D55E00", "#0072B2", "#009E73"]))
-    )).configure_legend(orient='bottom')
+    chart = add_multiple_line_chart(data = df_plot,
+                                    x = 'Year',
+                                    y = ['TotalPopulation', 'PopulationF', 'PopulationM'],
+                                    codes = ['Total', 'Male', 'Female'],
+                                    var_name = "Population",
+                                    value_name = "Population size",
+                                    line_color = ["#D55E00", "#0072B2", "#009E73"])
     st.altair_chart(chart, use_container_width=True)
-
 
 with st.expander("Total deaths"):
     st.header("Total deaths")
-    chart = (alt.Chart(df_plot).mark_line(color="#D55E00").encode(
-        x=alt.X('Year', axis=alt.Axis(format='.0f')),
-        y='N_dead'
-    ))
+    chart = add_single_line_chart(data = df_plot,
+                                    x = 'Year',
+                                    y = 'N_dead',
+                                    line_color = "#D55E00")
     st.altair_chart(chart, use_container_width=True)
+
