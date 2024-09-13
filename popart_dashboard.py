@@ -1,13 +1,15 @@
+#!/usr/bin/env python3
 """
 App to plot output data from the PoPART-IBM model
 
 Author: p-robot
 """
 
-import streamlit as st
-import pandas as pd
-from os.path import join
 import os
+from os.path import join
+import pandas as pd
+import streamlit as st
+import altair as alt
 
 plotting_dict = {
     'Incidence': {'name': 'HIV incidence',
@@ -73,18 +75,19 @@ df = pd.read_csv(join(output_dir, option))
 df_outside = pd.read_csv(join(output_dir, 
     "Annual_outputs_CL04_Za_C_V1.2_patch1_Rand10_Run1_PCseed0_0_CF.csv"))
 
-# import altair as alt
-# st.header("HIV incidence with Altair chart")
-# chart = (alt.Chart(df_plot).mark_line(color="blue").encode(
-#     x=alt.X('Year', axis=alt.Axis(format=',.0f')),
-#     y='Incidence'
-# ))
-# st.altair_chart(chart, use_container_width=True)
 
 df_plot = df[(df.Year>=year_range[0]) & (df.Year<=year_range[1])]
-
 if outside_patch_on:
     df_outside = df_outside[(df_outside.Year>=year_range[0]) & (df_outside.Year<=year_range[1])]
+
+
+st.header("HIV incidence")
+chart = (alt.Chart(df_plot).mark_line(color="#D55E00").encode(
+    x=alt.X('Year', axis=alt.Axis(format='.0f')),
+    y='Incidence'
+))
+st.altair_chart(chart, use_container_width=True)
+
 
 st.subheader("HIV indicators in 2030 (trial community)")
 c4, c5, c6 = st.columns(3)
@@ -122,16 +125,33 @@ for var in vars_to_plot:
                          hide_index=True)
 
 st.header("Community demographics")
+
+# Reshape the data
+df_pop = df_plot[['Year', 'TotalPopulation', 'PopulationF', 'PopulationM']].melt(
+    'Year', value_name = "Population size", var_name = "Population")
+# Recode the data
+df_pop.Population.replace(
+        {'TotalPopulation': 'Total', 
+         'PopulationF': 'Female', 
+         'PopulationM': 'Male'}, inplace=True)
+
 with st.expander("Total population size"):
     st.header("Total population size")
-    st.line_chart(data = df_plot,
-        x = 'Year',
-        y = ['TotalPopulation', 'PopulationF', 'PopulationM'],
-        color = ["#D55E00", "#0072B2", "#009E73"])
+    chart = (alt.Chart(df_pop).mark_line().encode(
+        x=alt.X('Year', axis=alt.Axis(format='.0f')),
+        y = 'Population size', 
+        color = alt.Color('Population',
+            scale=alt.Scale(
+            domain=['Total', 'Male', 'Female'],
+            range=["#D55E00", "#0072B2", "#009E73"]))
+    )).configure_legend(orient='bottom')
+    st.altair_chart(chart, use_container_width=True)
+
 
 with st.expander("Total deaths"):
     st.header("Total deaths")
-    st.line_chart(data = df_plot,
-        x = 'Year',
-        y = 'N_dead',
-        color = ["#D55E00"])
+    chart = (alt.Chart(df_plot).mark_line(color="#D55E00").encode(
+        x=alt.X('Year', axis=alt.Axis(format='.0f')),
+        y='N_dead'
+    ))
+    st.altair_chart(chart, use_container_width=True)
