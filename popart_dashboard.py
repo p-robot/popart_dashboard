@@ -58,14 +58,16 @@ The trial was looking at the impact of a combination prevention package of diffe
 that included home-based HIV testing.  This home-based testing intervention was delivered by community healthcare workers called 
 Community HIV Care Providers, or CHiPs for short.  The trial had three arms: arm A was a combination prevention intervention with universal 
 ART), arm B was the combination prevention intervention with ART provided according to local guidelines and arm C was a control
- arm offering standard of care.  The main results of the HPTN071 (PopART) trial were published in 2019 in 
+ arm offering standard of care.  The main results of the HPTN071 (PopART) trial are published in 
 [Hayes et al., (2019)](https://www.nejm.org/doi/full/10.1056/NEJMoa1814556).  
 Further details on the trial are published on the trial website: [HPTN 071 (PopART) trial](https://www.hptn.org/research/studies/hptn-071).
 """)
 
 with st.expander("What were the results of the HPTN071 (PopART) trial?", icon = ":material/add:"):
-    st.write("""Results found the adjusted rate ratio of arm A compared with arm C was 0.93 (a 7% reduction in incidence) and 0.7 for arm B
-compared with arm C (30% reduction in incidence).
+    st.write("""The primary endpoint of the trial looked at the rate ratio of HIV incidence in intervention arms (A or B) compared to the control arm (C).
+Results found the adjusted rate ratio of arm A compared with arm C was 0.93 (a 7% reduction in incidence) and 0.7 for arm B
+compared with arm C (30% reduction in incidence).  See [Hayes et al., (2019)](https://www.nejm.org/doi/full/10.1056/NEJMoa1814556) for full details
+and secondary endpoint.
     """)
 
 st.divider()
